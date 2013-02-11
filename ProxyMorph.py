@@ -1,7 +1,12 @@
 #!/bin/sh -
 "exec" "python" "-O" "$0" "$@"
 
-import BaseHTTPServer, select, socket, SocketServer, urlparse
+import BaseHTTPServer, select, socket, SocketServer, urlparse, base64
+
+
+proxy_user_pass = "Some_User:Some_Pass"
+
+
 
 class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
     __base = BaseHTTPServer.BaseHTTPRequestHandler
@@ -23,8 +28,8 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
 
     def _connect_to(self, netloc, soc):
 
-        proxy_host = "172.16.27.25"
-        proxy_port = "7997"
+        proxy_host = "202.141.80.22"
+        proxy_port = "3128"
         
         host_port = proxy_host, int(proxy_port)
         
@@ -48,6 +53,7 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        
         try:
             s.connect(PROXY_ADDR)
         except socket.error:
@@ -83,6 +89,8 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             return
         soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         soc.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        encoded_user_pass=base64.encodestring(proxy_user_pass)
+        
         try:
             if self._connect_to(netloc, soc):
                 if self.verbosity == 1:
@@ -92,9 +100,11 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                     self.path,
                     self.request_version))
                 self.headers['Connection'] = 'Keep-Alive'
-                del self.headers['Proxy-Connection']
+                #del self.headers['Proxy-Connection']
                 for key_val in self.headers.items():
                     soc.send("%s: %s\r\n" % key_val)
+                proxy_auth = "Proxy-Authorization: Basic " + str(encoded_user_pass) + "\r\n"
+                soc.send(proxy_auth)
                 soc.send("\r\n")
                 self._read_write(soc)
         finally:
@@ -135,7 +145,14 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                             print "Browser data is : "
                             print data
                         if data != "":
-                            out.send(data)
+                            try:
+                                out.send(data)
+                            except socket.error, arg:
+                                if out == soc:
+                                    print "Socket to proxy is the culprit!\n"
+                                else:
+                                    print "Browser!! How come?\n"
+                            
                         count = 0
             else:
                 pass
@@ -146,10 +163,11 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
     do_PUT      =   do_GET
     do_DELETE   =   do_GET
 
-class ThreadingHTTPServer (SocketServer.ThreadingMixIn,
+class ThreadedHTTPServer (SocketServer.ThreadingMixIn,
                            BaseHTTPServer.HTTPServer): pass
 
 if __name__ == '__main__':
+    '''
     from sys import argv
     if argv[1:] and argv[1] in ('-h', '--help'):
         print argv[0], "[port [allowed_client_name ...]]"
@@ -160,8 +178,13 @@ if __name__ == '__main__':
                 client = socket.gethostbyname(name)
                 allowed.append(client)
                 print "Accept: %s (%s)" % (client, name)
-            ProxyHandler.allowed_clients = allowed
             del argv[2:]
         else:
             print "All clients will be allowed to connect..."
-        BaseHTTPServer.test(ProxyHandler, ThreadingHTTPServer)
+        '''
+    allowed = ["10.9.11.13", "172.16.27.25"]
+    ProxyHandler.allowed_clients = allowed
+    port = 8000
+    server = ThreadedHTTPServer(('', port), ProxyHandler)
+    print 'Starting server, use <Ctrl-C> to stop'
+    server.serve_forever()
