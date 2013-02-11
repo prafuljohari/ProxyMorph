@@ -1,16 +1,13 @@
 ProxyMorph is a cascading proxy server designed for IITG (and similar) environments.
 
-version - v0.1
+Version - v0.2
 
 
 What's New:
 
-Implemented http and https requests for all methods(GET, POST etc)
-Implemented connect method.
-Set all sockets as keep-alive (for now)
-
-
-Intial release
+Changed proxy to central squid proxy(.22)
+Added authentication header
+Added allowed IPs.
 
 
 
