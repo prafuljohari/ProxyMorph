@@ -1,0 +1,75 @@
+ '''
+        PROXY_ADDR = ("202.141.80.22", 3128)
+        CONNECT = "CONNECT %s HTTP/1.1\r\n" % (self.path)
+
+        #s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+
+
+        h = httplib.HTTPConnection("202.141.80.22", 3128)
+        encoded_user_pass=base64.encodestring(proxy_user_pass)
+        h.putrequest("CONNECT", self.path)
+        h.putheader('Proxy-Authorization', '''Basic %s''' % encoded_user_pass)
+        h.endheaders()
+
+        r = h.getresponse()
+        z = r.read()
+        print z
+
+        
+        
+        try:
+            s.connect(PROXY_ADDR)
+        except socket.error:
+            s.close()
+            return 1
+
+        s.send("%s %s %s\r\n" % (
+                    self.command,
+                    self.path,
+                    self.request_version))
+        finally:
+        pass
+
+        try:
+            self.wfile.write(self.protocol_version + " 200 Connection established\r\n")
+            self.wfile.write("Proxy-agent: %s\r\n" % self.version_string())
+            self.wfile.write("\r\n")
+            proxy_auth = "Proxy-Authorization: Basic " + str(encoded_user_pass) + "\r\n"
+            s.sendall(proxy_auth+"\r\n")
+            #s = tlslite.TLSConnection(s)
+            #s.handshakeClientCert()
+            self._read_write_ssl(s, 100)
+            
+        
+        finally:
+            if self.verbosity >= 3:
+                print "\t" "byeHttps"
+            #s.close()
+            self.connection.close()
+        '''
+
+        '''
+        return 1
+        s = tlslite.TLSConnection(s)
+        try:
+            s.handshakeClientCert()
+        except tlslite.TLSLocalAlert as alert:
+            print alert
+
+
+        data = s.recv(40)
+        
+        if self.verbosity >=2:
+            print "Proxy response: "
+            print data
+            
+        if data:
+            try:
+                confirm = "HTTP/1.0 200 Connection established\r\n\r\n"
+                self.connection.send(confirm)
+                #data = self.connection.recv(1024)
+                #print "Culprit is :"
+                #print str(data)
+                self._read_write(s, 100)
+                '''
